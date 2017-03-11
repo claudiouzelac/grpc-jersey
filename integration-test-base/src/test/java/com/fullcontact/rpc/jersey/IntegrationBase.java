@@ -7,11 +7,18 @@ import com.fullcontact.rpc.TestResponse;
 
 import com.google.protobuf.util.JsonFormat;
 import io.dropwizard.testing.junit.ResourceTestRule;
+import org.assertj.core.util.Strings;
+import org.glassfish.jersey.client.ClientResponse;
+import org.glassfish.jersey.message.internal.EntityInputStream;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import javax.ws.rs.client.Entity;
+
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -207,5 +214,48 @@ public abstract class IntegrationBase {
         assertThat(response.getRequest().getNt()).isEqualTo(request);
     }
 
+    public void testStreamGet() throws Exception {
+        InputStream response = resources().getJerseyTest()
+                                       .target("/stream/hello")
+                                       .queryParam("d", 1234.5678)
+                                       .queryParam("enu", "SECOND")
+                                       .queryParam("int3", "10")
+                                       .queryParam("x", "y")
+                                       .queryParam("nt.f1", "abcd")
+                                       .request()
+                                       .buildGet()
+                                       .invoke(InputStream.class);
 
+        BufferedReader reader = new BufferedReader(new InputStreamReader(response));
+
+        int count = 0;
+        long now = System.currentTimeMillis();
+        while(true) {
+            String json = reader.readLine();
+
+            if(Strings.isNullOrEmpty(json))
+                break;
+
+            TestResponse.Builder responseFromJson = TestResponse.newBuilder();
+            JsonFormat.parser().merge(json, responseFromJson);
+            TestResponse r = responseFromJson.build();
+
+            assertThat(r.getRequest().getS()).isEqualTo("hello");
+            assertThat(r.getRequest().getInt3()).isEqualTo(10);
+            assertThat(r.getRequest().getD()).isEqualTo(1234.5678);
+            assertThat(r.getRequest().getEnu()).isEqualTo(TestEnum.SECOND);
+            assertThat(r.getRequest().getNt().getF1()).isEqualTo("abcd");
+
+            count++;
+
+            long after = System.currentTimeMillis();
+            long duration = after - now;
+
+            // This might be flaky, but we want to ensure that we're actually streaming
+            assertThat(duration).isLessThan(1000/2);
+            now = after;
+        }
+
+        assertThat(count).isEqualTo(10);
+    }
 }

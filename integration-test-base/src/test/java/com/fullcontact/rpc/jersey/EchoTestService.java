@@ -47,4 +47,18 @@ public class EchoTestService extends TestServiceGrpc.TestServiceImplBase {
         responseObserver.onNext(TestResponse.newBuilder().setRequest(request).build());
         responseObserver.onCompleted();
     }
+
+    public void streamMethod1(TestRequest request, StreamObserver<TestResponse> responseObserver) {
+        for(int i = 0; i < request.getInt3(); i++) {
+            responseObserver.onNext(TestResponse.newBuilder().setRequest(request).build());
+
+            try {
+                Thread.sleep(100);
+            }
+            catch(InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        responseObserver.onCompleted();
+    }
 }
