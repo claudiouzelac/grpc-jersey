@@ -25,7 +25,9 @@ public class JerseyStreamingObserver<V extends Message> implements StreamObserve
         new Variant(MediaType.APPLICATION_JSON_TYPE, (String) null, null),
         new Variant(new MediaType("text", "event-stream"), (String) null, null)
     );
-    private static final JsonFormat.Printer PRINTER = JsonFormat.printer().omittingInsignificantWhitespace();
+    private static final JsonFormat.Printer PRINTER = JsonFormat.printer()
+                                                                .includingDefaultValueFields()
+                                                                .omittingInsignificantWhitespace();
 
     private final ChunkedOutput<String> output;
     private final boolean sse;
